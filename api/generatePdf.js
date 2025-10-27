@@ -1,4 +1,5 @@
-const { chromium } = require('playwright-chromium');
+const playwright = require('playwright-core');
+const chromium = require('@sparticuz/chromium');
 
 module.exports = async (req, res) => {
     // Get the page URL from the request
@@ -14,9 +15,13 @@ module.exports = async (req, res) => {
     let browser;
     
     try {
-        // Start a browser with bundled Chromium
-        browser = await chromium.launch({
-            headless: true
+        console.log('Starting browser...');
+        
+        // Launch browser with Vercel-compatible Chromium
+        browser = await playwright.chromium.launch({
+            args: chromium.args,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless
         });
         
         const page = await browser.newPage();
