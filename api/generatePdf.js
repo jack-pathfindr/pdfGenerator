@@ -1,4 +1,4 @@
-const chrome = require('chrome-aws-lambda');
+const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 
 module.exports = async (req, res) => {
@@ -16,9 +16,11 @@ module.exports = async (req, res) => {
         console.log('Launching browser...');
         
         browser = await puppeteer.launch({
-            args: chrome.args,
-            executablePath: await chrome.executablePath,
-            headless: chrome.headless
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: true,
+            ignoreHTTPSErrors: true
         });
         
         const page = await browser.newPage();
