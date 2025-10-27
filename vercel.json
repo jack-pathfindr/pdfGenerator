@@ -3,6 +3,5 @@
     "api/generatePdf.js": {
       "maxDuration": 60
     }
-  },
-  "regions": ["iad1"]
+  }
 }
