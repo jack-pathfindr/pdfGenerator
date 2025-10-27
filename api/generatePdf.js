@@ -1,39 +1,34 @@
-const playwright = require('playwright-core');
-const chromium = require('@sparticuz/chromium');
+const chrome = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
 
 module.exports = async (req, res) => {
-    // Get the page URL from the request
     const pageUrl = req.query.url;
     
-    // Check if URL was provided
     if (!pageUrl) {
         return res.status(400).json({ 
             error: 'Please provide a URL' 
         });
     }
     
-    let browser;
+    let browser = null;
     
     try {
-        console.log('Starting browser...');
+        console.log('Launching browser...');
         
-        // Launch browser with Vercel-compatible Chromium
-        browser = await playwright.chromium.launch({
-            args: chromium.args,
-            executablePath: await chromium.executablePath(),
-            headless: true
+        browser = await puppeteer.launch({
+            args: chrome.args,
+            executablePath: await chrome.executablePath,
+            headless: chrome.headless
         });
         
         const page = await browser.newPage();
         
-        // Set a good size for viewing
-        await page.setViewportSize({ width: 1200, height: 800 });
+        await page.setViewport({ width: 1200, height: 800 });
         
         console.log('Loading page:', pageUrl);
         
-        // Go to the page
         await page.goto(pageUrl, { 
-            waitUntil: 'networkidle',
+            waitUntil: 'networkidle0',
             timeout: 30000 
         });
         
@@ -41,48 +36,36 @@ module.exports = async (req, res) => {
         
         // Expand all hidden sections
         await page.evaluate(() => {
-            // Click accordion buttons
             document.querySelectorAll('[aria-expanded="false"]').forEach(el => {
                 try { el.click(); } catch(e) {}
             });
             
-            // Open details elements
             document.querySelectorAll('details:not([open])').forEach(el => {
                 el.setAttribute('open', '');
             });
             
-            // Remove collapsed classes
             document.querySelectorAll('.collapsed').forEach(el => {
                 el.classList.remove('collapsed');
             });
         });
         
-        // Wait a moment for animations
         await page.waitForTimeout(2000);
         
         console.log('Adding print styles...');
         
-        // Add styles to make it look nice in PDF
         await page.addStyleTag({
             content: `
                 @media print {
-                    /* Hide navigation and sidebars */
                     nav, .sidebar, header.fixed, .nav-header { 
                         display: none !important; 
                     }
-                    
-                    /* Make content full width */
                     main, article, .content { 
                         max-width: 100% !important;
                         margin: 0 !important;
                     }
-                    
-                    /* Prevent ugly breaks */
                     pre, code, img, table { 
                         page-break-inside: avoid; 
                     }
-                    
-                    /* Show link URLs */
                     a[href^="http"]:after { 
                         content: " (" attr(href) ")";
                         font-size: 0.8em;
@@ -94,7 +77,6 @@ module.exports = async (req, res) => {
         
         console.log('Generating PDF...');
         
-        // Create the PDF
         const pdf = await page.pdf({
             format: 'A4',
             printBackground: true,
@@ -114,7 +96,6 @@ module.exports = async (req, res) => {
         
         console.log('PDF generated successfully');
         
-        // Send the PDF back
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="documentation.pdf"');
         res.send(pdf);
@@ -126,9 +107,8 @@ module.exports = async (req, res) => {
             details: error.message 
         });
     } finally {
-        if (browser) {
+        if (browser !== null) {
             await browser.close();
         }
     }
 };
-
