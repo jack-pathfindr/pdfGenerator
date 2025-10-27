@@ -1,6 +1,10 @@
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 
+// Optimize Chromium for Vercel
+chromium.setHeadlessMode = true;
+chromium.setGraphicsMode = false;
+
 module.exports = async (req, res) => {
     const pageUrl = req.query.url;
     
@@ -13,24 +17,34 @@ module.exports = async (req, res) => {
     let browser = null;
     
     try {
-        console.log('Launching browser...');
+        console.log('Starting PDF generation for:', pageUrl);
         
+        // Launch browser with optimized settings for Vercel
         browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
+            args: [
+                ...chromium.args,
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-setuid-sandbox',
+                '--no-first-run',
+                '--no-sandbox',
+                '--no-zygote',
+                '--single-process'
+            ],
+            defaultViewport: { width: 1200, height: 800 },
             executablePath: await chromium.executablePath(),
-            headless: true,
+            headless: 'new',
             ignoreHTTPSErrors: true
         });
         
+        console.log('Browser launched successfully');
+        
         const page = await browser.newPage();
         
-        await page.setViewport({ width: 1200, height: 800 });
-        
-        console.log('Loading page:', pageUrl);
+        console.log('Navigating to:', pageUrl);
         
         await page.goto(pageUrl, { 
-            waitUntil: 'networkidle0',
+            waitUntil: ['networkidle0', 'domcontentloaded'],
             timeout: 30000 
         });
         
@@ -51,14 +65,15 @@ module.exports = async (req, res) => {
             });
         });
         
-        await page.waitForTimeout(2000);
+        // Wait for animations
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         console.log('Adding print styles...');
         
         await page.addStyleTag({
             content: `
                 @media print {
-                    nav, .sidebar, header.fixed, .nav-header { 
+                    nav, .sidebar, header.fixed, .nav-header, footer { 
                         display: none !important; 
                     }
                     main, article, .content { 
@@ -89,28 +104,37 @@ module.exports = async (req, res) => {
                 right: '0.6in' 
             },
             displayHeaderFooter: true,
+            headerTemplate: '<div></div>',
             footerTemplate: `
                 <div style="font-size: 9px; text-align: center; width: 100%; color: #666; padding-top: 5px;">
-                    Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+                    <span class="pageNumber"></span> / <span class="totalPages"></span>
                 </div>
-            `
+            `,
+            preferCSSPageSize: false
         });
         
-        console.log('PDF generated successfully');
+        console.log('PDF generated successfully, size:', pdf.length, 'bytes');
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="documentation.pdf"');
+        res.setHeader('Content-Length', pdf.length);
         res.send(pdf);
         
     } catch (error) {
-        console.error('Error:', error);
+        console.error('PDF generation failed:', error);
         res.status(500).json({ 
             error: 'Failed to generate PDF',
-            details: error.message 
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     } finally {
         if (browser !== null) {
-            await browser.close();
+            try {
+                await browser.close();
+                console.log('Browser closed');
+            } catch (closeError) {
+                console.error('Error closing browser:', closeError);
+            }
         }
     }
 };
