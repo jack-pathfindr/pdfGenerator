@@ -17,8 +17,10 @@ export default async function handler(req) {
   }
   
   try {
-    // Use Browserless.io free tier for PDF generation
-    const browserlessUrl = 'https://chrome.browserless.io/pdf';
+    // Your Browserless.io API token - REPLACE THIS!
+    const BROWSERLESS_TOKEN = '2TJJeuZK0fBxxusb0b83b4d1af4ec3b4317b8feee48e7428d';
+    
+    const browserlessUrl = `https://chrome.browserless.io/pdf?token=${2TJJeuZK0fBxxusb0b83b4d1af4ec3b4317b8feee48e7428d}`;
     
     const response = await fetch(browserlessUrl, {
       method: 'POST',
@@ -51,7 +53,8 @@ export default async function handler(req) {
     });
     
     if (!response.ok) {
-      throw new Error(`PDF service returned ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Browserless returned ${response.status}: ${errorText}`);
     }
     
     const pdfBuffer = await response.arrayBuffer();
@@ -77,5 +80,3 @@ export default async function handler(req) {
     );
   }
 }
-
-
