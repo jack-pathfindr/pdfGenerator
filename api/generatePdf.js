@@ -20,7 +20,7 @@ export default async function handler(req) {
     // Your Browserless.io API token - REPLACE THIS!
     const BROWSERLESS_TOKEN = '2TJJeuZK0fBxxusb0b83b4d1af4ec3b4317b8feee48e7428d';
     
-    const browserlessUrl = `https://chrome.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
+    const browserlessUrl = `https://production-sfo.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`;
     
     const response = await fetch(browserlessUrl, {
       method: 'POST',
@@ -80,3 +80,4 @@ export default async function handler(req) {
     );
   }
 }
+
