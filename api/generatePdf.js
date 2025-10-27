@@ -18,7 +18,7 @@ export default async function handler(req) {
   
   try {
     // Use Browserless.io free tier for PDF generation
-    const browserlessUrl = 'https://chrome.browserless.io/pdf';
+    const browserlessUrl = 'https://chrome.browserless.io/pdf?token=2TJJeuZK0fBxxusb0b83b4d1af4ec3b4317b8feee48e7428d';
     
     const response = await fetch(browserlessUrl, {
       method: 'POST',
@@ -77,3 +77,4 @@ export default async function handler(req) {
     );
   }
 }
+
